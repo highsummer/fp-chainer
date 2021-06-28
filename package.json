@@ -1,13 +1,14 @@
 {
-  "name": "@pace-on-cloud/fp-chainer",
+  "name": "fp-chainer",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "lib",
+  "types": "lib",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
   "keywords": [],
-  "author": "",
+  "author": "Yoonha Hwang",
   "license": "ISC",
   "dependencies": {
     "typescript": "^4.3.4"
