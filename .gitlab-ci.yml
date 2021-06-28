@@ -1,0 +1,66 @@
+stages:
+  - publish
+  - deploy
+
+services:
+  - name: docker:dind
+    entrypoint: ["env", "-u", "DOCKER_HOST"]
+    command: ["dockerd-entrypoint.sh"]
+
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+publish:
+  stage: publish
+  image:
+    name: registry.gitlab.com/pace-on-cloud/server:ci-0.1.0
+  script:
+    - export TAG=$(echo ${CI_JOB_STARTED_AT} | sed 's/[:T]/-/g')-${CI_COMMIT_SHA:0:10}
+    - cp ./src/server.dev.config.ts ./src/server.config.ts
+    - npm config set @pace-on-cloud:registry https://gitlab.com/api/v4/packages/npm/
+    - npm config set '//gitlab.com/api/v4/packages/npm/:_authToken' "${NPM_TOKEN}"
+    - npm config set '//gitlab.com/api/v4/projects/26545378/packages/npm/:_authToken' "${NPM_TOKEN}"
+    - npm install --save-dev
+    - npm run specgen
+    - npm run build
+    - npm config set @pace-on-cloud:registry https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/npm/
+    - npm config set '//gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken' "${NPM_TOKEN}"
+    - npm publish --tag ${TAG}
+  only:
+    variables:
+      - $CI_COMMIT_BRANCH == "dev"
+
+build:
+  stage: publish
+  image:
+    name: registry.gitlab.com/pace-on-cloud/server:ci-0.1.0
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - export TAG=$(echo ${CI_JOB_STARTED_AT} | sed 's/[:T]/-/g')-${CI_COMMIT_SHA:0:10}
+    - export VERSION=$(cat package.json | jq -r .version)
+    - cp ./src/server.dev.config.ts ./src/server.config.ts
+    - docker build --build-arg NPM_TOKEN=${NPM_TOKEN} -t registry.gitlab.com/pace-on-cloud/server:${VERSION} .
+    - docker push registry.gitlab.com/pace-on-cloud/server:${VERSION}
+  only:
+    variables:
+      - $CI_COMMIT_BRANCH == "dev"
+
+deploy:
+  when: manual
+  stage: deploy
+  image:
+    name: registry.gitlab.com/pace-on-cloud/server:ci-0.1.0
+  script:
+    - mkdir ~/.kube
+    - echo ${KUBECONFIG_DEV} | base64 -d > ~/.kube/config
+    - cp ./src/server.dev.config.ts ./src/server.config.ts
+    - npm config set @pace-on-cloud:registry https://gitlab.com/api/v4/packages/npm/
+    - npm config set '//gitlab.com/api/v4/packages/npm/:_authToken' "${NPM_TOKEN}"
+    - npm config set '//gitlab.com/api/v4/projects/26545378/packages/npm/:_authToken' "${NPM_TOKEN}"
+    - npm install --save-dev
+    - npm run deploy
+  only:
+    variables:
+      - $CI_COMMIT_BRANCH == "dev"
