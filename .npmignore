@@ -4,5 +4,3 @@
 tsconfig.json
 db.sqlite3
 .npmrc
-/lib/*.js
-/lib/!(api|core|utils)/**/*.js
