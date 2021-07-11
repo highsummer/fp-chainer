@@ -28,7 +28,7 @@ export function all<E, A>(es: Either<E, A>[]): Either<E, A[]> {
 }
 
 export class Either<E, A> {
-  constructor(private internal: EitherInternal<E, A>) {}
+  constructor(protected internal: EitherInternal<E, A>) {}
 
   chain<F, B>(f: (a: A) => Either<F, B>): Either<E | F, B> {
     if (this.internal.type === "left") {
@@ -107,3 +107,28 @@ export class Either<E, A> {
   }
 }
 
+export class EitherComp<E, K extends string, NS extends { [P in K]: NS[P] }> extends Either<E, NS> {
+  async bind<F, L extends string, V>(key: L, f: (ns: NS) => Promise<Either<F, V>>): Promise<EitherComp<E | F, K | L, Omit<NS, L> & Record<L, V>>> {
+    if (this.internal.type === "left") {
+      return this as unknown as EitherComp<E | F, K | L, Omit<NS, L> & Record<L, V>>
+    } else {
+      const ns = this.internal.a;
+      const e = await f(ns);
+      return e
+        .map(r => new EitherComp<E | F, K | L, Omit<NS, L> & Record<L, V>>({ type: "right", a: { ...ns, [key]: r } as unknown as Omit<NS, L> & Record<L, V> }))
+        .orElse(l => new EitherComp<E | F, K | L, Omit<NS, L> & Record<L, V>>({ type: "left", e: l }))
+    }
+  }
+
+  async yield<B>(f: (ns: NS) => B): Promise<Either<E, B>> {
+    if (this.internal.type === "left") {
+      return left(this.internal.e)
+    } else {
+      return right(f(this.internal.a))
+    }
+  }
+}
+
+export function empty(): EitherComp<never, never, {}> {
+  return new EitherComp<never, never, {}>({ type: "right", a: {} })
+}
