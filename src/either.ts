@@ -132,3 +132,7 @@ export class EitherComp<E, K extends string, NS extends { [P in K]: NS[P] }> ext
 export function empty(): EitherComp<never, never, {}> {
   return new EitherComp<never, never, {}>({ type: "right", a: {} })
 }
+
+export function namespace<K extends string, NS extends { [P in K]: NS[P] }>(ns: NS): EitherComp<never, K, NS> {
+  return new EitherComp<never, K, NS>({ type: "right", a: ns })
+}
