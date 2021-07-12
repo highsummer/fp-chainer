@@ -102,6 +102,14 @@ export class Either<E, A> {
     }
   }
 
+  orNull(): A | undefined {
+    if (this.internal.type === "left") {
+      return undefined
+    } else {
+      return this.internal.a
+    }
+  }
+
   eval(): EitherInternal<E, A> {
     return this.internal
   }
