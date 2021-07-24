@@ -144,3 +144,9 @@ export function empty(): EitherComp<never, never, {}> {
 export function namespace<K extends string, NS extends { [P in K]: NS[P] }>(ns: NS): EitherComp<never, K, NS> {
   return new EitherComp<never, K, NS>({ type: "right", a: ns })
 }
+
+export function fromEither<E, K extends string, NS extends { [P in K]: NS[P] }>(e: Either<E, NS>): EitherComp<E, K, NS> {
+  return e
+    .map(ns => namespace(ns) as EitherComp<E, K, NS>)
+    .orElse(exc => new EitherComp({ type: "left", e: exc }))
+}
