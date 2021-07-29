@@ -113,6 +113,18 @@ export class Either<E, A> {
   eval(): EitherInternal<E, A> {
     return this.internal
   }
+
+  getOrElse<B>(f: (a: A) => B, g: (e: E) => B): B {
+    return this.map(f).orElse(g)
+  }
+
+  isRight(): boolean {
+    return this.internal.type === "right"
+  }
+
+  isLeft(): boolean {
+    return this.internal.type === "left"
+  }
 }
 
 export class EitherComp<E, K extends string, NS extends { [P in K]: NS[P] }> extends Either<E, NS> {
