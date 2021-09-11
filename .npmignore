@@ -4,3 +4,6 @@
 tsconfig.json
 db.sqlite3
 .npmrc
+/.github
+.gitlab-ci.yml
+package-lock.json
