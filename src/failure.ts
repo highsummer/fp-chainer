@@ -11,6 +11,7 @@ export function fail<Code extends string, Body>(code: Code, message?: any, body?
   return {
     code: code,
     message: message === undefined || typeof message === "string" ? message : JSON.stringify(message),
+    body: body,
     trace: (new Error()).stack!,
   }
 }
