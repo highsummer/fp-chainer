@@ -155,12 +155,14 @@ export function empty<X>(): EitherComp<never, X, never, {}> {
   return new EitherComp<never, X, never, {}>({ type: "right", a: {} })
 }
 
-export function namespace<X, K extends string, NS extends { [P in K]: NS[P] }>(ns: NS): EitherComp<never, X, K, NS> {
-  return new EitherComp<never, X, K, NS>({ type: "right", a: ns })
+export function namespace<X>() {
+  return function <K extends string, NS extends { [P in K]: NS[P] }>(ns: NS): EitherComp<never, X, K, NS> {
+    return new EitherComp<never, X, K, NS>({ type: "right", a: ns })
+  }
 }
 
 export function fromEither<C extends string, X, K extends string, NS extends { [P in K]: NS[P] }>(e: Either<Failure<C, X>, NS>): EitherComp<C, X, K, NS> {
   return e
-    .map(ns => namespace(ns) as EitherComp<C, X, K, NS>)
+    .map(ns => namespace<X>()(ns) as EitherComp<C, X, K, NS>)
     .orElse(exc => new EitherComp({ type: "left", e: exc }))
 }
