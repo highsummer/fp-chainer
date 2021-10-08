@@ -132,7 +132,7 @@ export class Either<E, A> {
 type Insert<NS extends { [P in K]: NS[P] }, L extends string, V, K extends keyof NS & string = keyof NS & string> = { [P in L | K]: P extends L ? V : P extends keyof NS ? NS[P] : never };
 
 export class EitherComp<C extends string, X, K extends string, NS extends { [P in K]: NS[P] }> {
-  internal: Promise<Either<Failure<C, X>, NS>>,
+  internal: Promise<Either<Failure<C, X>, NS>>;
 
   constructor(initial: Either<Failure<C, X>, NS> | Promise<Either<Failure<C, X>, NS>>) {
     this.internal = Promise.resolve(initial).then();
@@ -140,8 +140,8 @@ export class EitherComp<C extends string, X, K extends string, NS extends { [P i
 
   bind<L extends string, V>(key: L, f: (ns: NS) => Promise<Either<Failure<C, X>, V>>): EitherComp<C, X, K | L, Insert<NS, L, V>> {
     return new EitherComp<C, X, K | L, Insert<NS, L, V>>(
-      this.internal.then(async (e) => {
-        return e.chain(ns => {
+      this.internal.then((e) => {
+        return e.chainAsync(async (ns) => {
           return (await f(ns)).map(v => {
             return { ...ns, [key]: v } as Insert<NS, L, V>
           })
