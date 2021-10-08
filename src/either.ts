@@ -150,6 +150,30 @@ export class EitherComp<C extends string, X, K extends string, NS extends { [P i
     )
   }
 
+  bind2<K1 extends string, V1, K2 extends string, V2>(key1: K1, key2: K2, f: (ns: NS) => Promise<Either<Failure<C, X>, [V1, V2]>>): EitherComp<C, X, K | K1 | K2, Insert<Insert<NS, K1, V1>, K2, V2>> {
+    return new EitherComp<C, X, K | K1 | K2, Insert<Insert<NS, K1, V1>, K2, V2>>(
+      this.internal.then((e) => {
+        return e.chainAsync(async (ns) => {
+          return (await f(ns)).map(([v1, v2]) => {
+            return { ...ns, [key1]: v1, [key2]: v2 } as Insert<Insert<NS, K1, V1>, K2, V2>
+          })
+        })
+      })
+    )
+  }
+
+  bind3<K1 extends string, V1, K2 extends string, V2, K3 extends string, V3>(key1: K1, key2: K2, key3: K3, f: (ns: NS) => Promise<Either<Failure<C, X>, [V1, V2, V3]>>): EitherComp<C, X, K | K1 | K2 | K3, Insert<Insert<Insert<NS, K1, V1>, K2, V2>, K3, V3>> {
+    return new EitherComp<C, X, K | K1 | K2, Insert<Insert<Insert<NS, K1, V1>, K2, V2>, K3, V3>>(
+      this.internal.then((e) => {
+        return e.chainAsync(async (ns) => {
+          return (await f(ns)).map(([v1, v2, v3]) => {
+            return { ...ns, [key1]: v1, [key2]: v2, [key3]: v3 } as Insert<Insert<Insert<NS, K1, V1>, K2, V2>, K3, V3>
+          })
+        })
+      })
+    )
+  }
+
   bindFlat<L extends string, V>(key: L, f: (ns: NS) => Either<Failure<C, X>, V>): EitherComp<C, X, K | L, Insert<NS, L, V>> {
     return new EitherComp<C, X, K | L, Insert<NS, L, V>>(
       this.internal.then((e) => {
