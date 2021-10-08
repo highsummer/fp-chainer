@@ -129,40 +129,52 @@ export class Either<E, A> {
   }
 }
 
-export class EitherComp<C extends string, X, K extends string, NS extends { [P in K]: NS[P] }> extends Either<Failure<C, X>, NS> {
-  async bind<D extends string, L extends string, V>(key: L, f: (ns: NS) => Promise<Either<Failure<D, X>, V>>): Promise<EitherComp<C | D, X, K | L, Omit<NS, L> & Record<L, V>>> {
-    if (this.internal.type === "left") {
-      return this as unknown as EitherComp<C | D, X, K | L, Omit<NS, L> & Record<L, V>>
-    } else {
-      const ns = this.internal.a;
-      const e = await f(ns);
-      return e
-        .map(r => new EitherComp<C | D, X, K | L, Omit<NS, L> & Record<L, V>>({ type: "right", a: { ...ns, [key]: r } as unknown as Omit<NS, L> & Record<L, V> }))
-        .orElse(l => new EitherComp<C | D, X, K | L, Omit<NS, L> & Record<L, V>>({ type: "left", e: l }))
-    }
+type Insert<NS extends { [P in K]: NS[P] }, L extends string, V, K extends keyof NS & string = keyof NS & string> = { [P in L | K]: P extends L ? V : P extends keyof NS ? NS[P] : never };
+
+export class EitherComp<C extends string, X, K extends string, NS extends { [P in K]: NS[P] }> {
+  internal: Promise<Either<Failure<C, X>, NS>>,
+
+  constructor(initial: Either<Failure<C, X>, NS> | Promise<Either<Failure<C, X>, NS>>) {
+    this.internal = Promise.resolve(initial).then();
+  }
+
+  bind<L extends string, V>(key: L, f: (ns: NS) => Promise<Either<Failure<C, X>, V>>): EitherComp<C, X, K | L, Insert<NS, L, V>> {
+    return new EitherComp<C, X, K | L, Insert<NS, L, V>>(
+      this.internal.then(async (e) => {
+        return e.chain(ns => {
+          return (await f(ns)).map(v => {
+            return { ...ns, [key]: v } as Insert<NS, L, V>
+          })
+        })
+      })
+    )
+  }
+
+  bindFlat<L extends string, V>(key: L, f: (ns: NS) => Either<Failure<C, X>, V>): EitherComp<C, X, K | L, Insert<NS, L, V>> {
+    return new EitherComp<C, X, K | L, Insert<NS, L, V>>(
+      this.internal.then((e) => {
+        return e.chain(ns => {
+          return f(ns).map(v => {
+            return { ...ns, [key]: v } as Insert<NS, L, V>
+          })
+        })
+      })
+    )
   }
 
   async yield<B>(f: (ns: NS) => B): Promise<Either<Failure<C, X>, B>> {
-    if (this.internal.type === "left") {
-      return left(this.internal.e)
-    } else {
-      return right(f(this.internal.a))
-    }
+    return this.internal.then(e => e.map(f))
   }
 }
 
-export function empty<X>(): EitherComp<never, X, never, {}> {
-  return new EitherComp<never, X, never, {}>({ type: "right", a: {} })
-}
-
-export function namespace<X>() {
-  return function <K extends string, NS extends { [P in K]: NS[P] }>(ns: NS): EitherComp<never, X, K, NS> {
-    return new EitherComp<never, X, K, NS>({ type: "right", a: ns })
+export function namespace<C extends string, X>() {
+  return function<K extends keyof NS & string, NS extends { [P in K]: NS[P] }>(ns: NS) {
+    return new EitherComp<C, X, K, NS>(right(ns))
   }
 }
 
 export function fromEither<C extends string, X, K extends string, NS extends { [P in K]: NS[P] }>(e: Either<Failure<C, X>, NS>): EitherComp<C, X, K, NS> {
   return e
-    .map(ns => namespace<X>()(ns) as EitherComp<C, X, K, NS>)
-    .orElse(exc => new EitherComp({ type: "left", e: exc }))
+    .map(ns => namespace<C, X>()(ns) as EitherComp<C, X, K, NS>)
+    .orElse(exc => new EitherComp<C, X, K, NS>(left(exc)))
 }

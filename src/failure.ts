@@ -1,3 +1,5 @@
+import {Either} from "./either";
+
 export interface Failure<Code extends string, Body> {
   code: Code,
   message?: string,
