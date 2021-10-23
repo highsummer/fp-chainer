@@ -15,12 +15,12 @@ export class Must<E, A> {
     }
   }
 
-  chainOr<F, B>(f: (a: A) => Either<F, B> | Must<E | F, B>, or: B): Must<E | F, B> {
+  chainOr<F, B>(f: (a: A) => Either<F, B> | Must<E | F, B>, g: (a: A) => B): Must<E | F, B> {
     const result = f(this.a);
     if (result instanceof Either) {
       return result.getOrElse(
         b => new Must<E | F, B>(b, this.e),
-        e => new Must<E | F, B>(or, [...this.e, e])
+        e => new Must<E | F, B>(g(this.a), [...this.e, e])
       )
     } else {
       return result.mapLeft(fs => [...this.e, ...fs])
@@ -47,12 +47,12 @@ export class Must<E, A> {
     }
   }
 
-  chainLeftOr<F, B>(f: (es: E[]) => Either<F, B> | Must<E | F, B>, or: B): Must<E | F, B> {
+  chainLeftOr<F, B>(f: (es: E[]) => Either<F, B> | Must<E | F, B>, g: (a: A) => B): Must<E | F, B> {
     const result = f(this.e);
     if (result instanceof Either) {
       return result.getOrElse(
         b => new Must<E | F, B>(b, []),
-        e => new Must<E | F, B>(or, [...this.e, e])
+        e => new Must<E | F, B>(g(this.a), [...this.e, e])
       )
     } else {
       return result.mapLeft(fs => [...this.e, ...fs])
