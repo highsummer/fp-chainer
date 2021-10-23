@@ -1,4 +1,5 @@
 import {Failure} from "./failure";
+import {Must} from "./must";
 
 type EitherInternal<E, A> =
   {
@@ -126,6 +127,13 @@ export class Either<E, A> {
 
   isLeft(): boolean {
     return this.internal.type === "left"
+  }
+
+  intoMust(or: A): Must<E, A> {
+    return this.getOrElse(
+      a => new Must<E, A>(a, []),
+      e => new Must<E, A>(or, [e]),
+    )
   }
 }
 
