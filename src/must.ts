@@ -27,6 +27,10 @@ export class Must<E, A> {
     }
   }
 
+  chainMust<F, B>(f: (a: A) => Must<E | F, B>,): Must<E | F, B> {
+    return f(this.a).mapLeft(fs => [...this.e, ...fs])
+  }
+
   map<B>(f: (a: A) => B): Must<E, B> {
     return new Must(f(this.a), this.e)
   }
@@ -53,6 +57,10 @@ export class Must<E, A> {
     } else {
       return result.mapLeft(fs => [...this.e, ...fs])
     }
+  }
+
+  chainLeftMust<F, B>(f: (es: E[]) => Must<E | F, B>): Must<E | F, B> {
+    return f(this.e).mapLeft(fs => [...this.e, ...fs])
   }
 
   mapLeft<F>(f: (es: E[]) => F[]): Must<F, A> {
